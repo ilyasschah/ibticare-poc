@@ -1,1 +1,36 @@
-<p>settings works!</p>
+<div style="max-width: 500px; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+  <h2>Ollama Configuration</h2>
+
+  <!-- Server URL Field -->
+  <div style="margin-bottom: 15px;">
+    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Server URL:</label>
+    <div style="display: flex; gap: 10px;">
+      <input [(ngModel)]="url" type="text" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
+      <button (click)="testConnection()" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Ping Server
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Indicator -->
+  <div style="margin-bottom: 15px;">
+    <strong>Status: </strong>
+    @if (isConnected === true) {
+      <span style="color: green; font-weight: bold;">CONNECTED</span>
+    } @else if (isConnected === false) {
+      <span style="color: red; font-weight: bold;">OFFLINE / UNREACHABLE</span>
+    } @else {
+      <span>Testing...</span>
+    }
+  </div>
+
+  <!-- Models Dropdown -->
+  <div style="margin-bottom: 15px;">
+    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Select Model:</label>
+    <select [ngModel]="selectedModel" (ngModelChange)="onModelChange($event)" [disabled]="!isConnected" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      @for (model of models; track model) {
+        <option [value]="model">{{ model }}</option>
+      }
+    </select>
+  </div>
+</div>
