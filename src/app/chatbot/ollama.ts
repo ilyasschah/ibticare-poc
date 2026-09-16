@@ -26,7 +26,6 @@ export class OllamaService {
     }
   }
 
-  // Updated chat method to accept currentRoute
   async chat(prompt: string, currentRoute: string): Promise<string> {
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -37,14 +36,16 @@ export class OllamaService {
           messages: [
             { 
               role: 'system', 
-              content: `You are the ibticare assistant. 
-              The user is currently viewing the app route: "${currentRoute}".
-              You help users navigate the app. 
-              If the user asks to open or go to a page, output one of these exact tags:
-              - For Settings page: [NAV:SETTINGS]
-              - For Profile page: [NAV:PROFILE]
-              - For Dashboard page: [NAV:DASHBOARD]
-              Be polite, brief, and use the current context if asked where the user is.` 
+              content: `You are the ibticare desktop assistant.
+              Context: The user is currently on route: "${currentRoute}".
+
+              RULES:
+              1. If the user asks where they are, answer using the current route context. DO NOT output navigation tags.
+              2. ONLY output a navigation tag if the user explicitly asks to GO, OPEN, or NAVIGATE to a page:
+                 - Go to Settings: [NAV:SETTINGS]
+                 - Go to Profile: [NAV:PROFILE]
+                 - Go to Dashboard: [NAV:DASHBOARD]
+              3. Always include a short friendly response along with the tag if navigating.` 
             },
             { role: 'user', content: prompt }
           ],

@@ -1,10 +1,12 @@
 import { Component, inject, ChangeDetectorRef, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OllamaService } from './ollama';
 
 @Component({
   selector: 'app-chatbot',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './chatbot.html',
   styleUrl: './chatbot.css'
 })
@@ -18,7 +20,7 @@ export class Chatbot implements AfterViewChecked {
   public isOpen: boolean = true;
 
   messages: { text: string, isBot: boolean }[] = [
-    { text: 'Hello! I am your ibticare agent. Ask me to navigate anywhere!', isBot: true }
+    { text: 'Hello! I am your ibticare agent. How can I help you today?', isBot: true }
   ];
 
   ngAfterViewChecked() {
@@ -49,7 +51,6 @@ export class Chatbot implements AfterViewChecked {
     this.messages.push({ text: 'Thinking...', isBot: true });
     this.cdr.detectChanges();
 
-    // Pass current URL (e.g., '/settings', '/profile', '/dashboard') to Ollama
     const currentRoute = this.router.url;
     let reply = await this.ollama.chat(text, currentRoute);
 
