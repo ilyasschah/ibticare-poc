@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { Chatbot } from './chatbot';
 import { OllamaService } from './ollama';
 import { ActionRegistryService } from '../services/action-registry.service';
+import { UserProfileService } from '../services/user-profile.service';
 
 describe('Chatbot', () => {
   let component: Chatbot;
@@ -49,7 +50,7 @@ describe('Chatbot', () => {
     expect(document.body.classList.contains('dark-theme')).toBe(true);
 
     chat.mockResolvedValue('[ACTION:DARK_MODE_OFF]');
-    expect(await send('switch to light mode')).toBe('Theme updated!');
+    expect(await send('switch to light mode')).toBe('Light mode enabled.');
     expect(document.body.classList.contains('dark-theme')).toBe(false);
   });
 
@@ -60,6 +61,24 @@ describe('Chatbot', () => {
     expect(await send('open settings in dark mode')).toBe('On it!');
     expect(navigate).toHaveBeenCalledWith(['/settings']);
     expect(TestBed.inject(ActionRegistryService).isDarkMode()).toBe(true);
+  });
+
+  it('updates the profile from a tagged reply', async () => {
+    chat.mockResolvedValue('Sure, updating your name. [ACTION:UPDATE_NAME:Sarah Connor]');
+    expect(await send('Change my name to Sarah Connor')).toBe('Sure, updating your name.');
+    expect(TestBed.inject(UserProfileService).profile().name).toBe('Sarah Connor');
+  });
+
+  it('reports a failed action even when the model claims success', async () => {
+    const profile = TestBed.inject(UserProfileService);
+    const before = profile.profile().email;
+    chat.mockResolvedValue('Your email has been updated! [ACTION:UPDATE_EMAIL:not-an-email]');
+
+    const text = await send('change my email to not-an-email');
+
+    expect(text).toContain('Your email has been updated!');
+    expect(text).toContain("I couldn't update your email");
+    expect(profile.profile().email).toBe(before);
   });
 
   it('falls back to a navigation message when the reply is only a NAV tag', async () => {

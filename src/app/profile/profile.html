@@ -1,1 +1,56 @@
-<p>profile works!</p>
+<h1 class="page-title">Profile</h1>
+
+<form class="card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <div class="field" [class.field-updated]="assistantUpdated().has('name')">
+    <label for="profile-name">Name</label>
+    <input
+      id="profile-name"
+      type="text"
+      formControlName="name"
+      autocomplete="name"
+      [attr.maxlength]="nameMaxLength"
+      [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+      aria-describedby="profile-name-error"
+    />
+    <p id="profile-name-error" class="field-error">
+      @if (form.controls.name.touched && form.controls.name.hasError('required')) {
+        Name is required.
+      }
+    </p>
+  </div>
+
+  <div class="field" [class.field-updated]="assistantUpdated().has('email')">
+    <label for="profile-email">Email</label>
+    <input
+      id="profile-email"
+      type="email"
+      formControlName="email"
+      autocomplete="email"
+      [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+      aria-describedby="profile-email-error"
+    />
+    <p id="profile-email-error" class="field-error">
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        Enter a valid email address.
+      }
+    </p>
+  </div>
+
+  <div class="field" [class.field-updated]="assistantUpdated().has('role')">
+    <label for="profile-role">Role</label>
+    <select id="profile-role" formControlName="role">
+      @for (role of roles; track role) {
+        <option [value]="role">{{ role }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Save changes</button>
+    <button type="button" class="btn btn-secondary" (click)="discard()" [disabled]="form.pristine">Discard</button>
+  </div>
+
+  <p class="status" role="status" aria-live="polite">{{ status() }}</p>
+</form>
+
+<p class="tip">Tip: ask the assistant “Change my name to Sarah Connor” or “Update my email to sarah@example.com”.</p>

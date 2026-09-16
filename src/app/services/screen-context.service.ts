@@ -1,7 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ActivatedRouteSnapshot, NavigationStart, ResolveEnd, Router } from '@angular/router';
 
-export type ScreenMetrics = Record<string, string | number>;
+export type ScreenMetricValue =
+  | string
+  | number
+  | boolean
+  | ScreenMetricValue[]
+  | { [key: string]: ScreenMetricValue };
+
+export type ScreenMetrics = Record<string, ScreenMetricValue>;
 
 export interface ScreenContext {
   pageTitle: string;

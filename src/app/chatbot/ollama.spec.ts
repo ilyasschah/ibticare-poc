@@ -54,6 +54,16 @@ describe('OllamaService', () => {
     expect(prompt).toContain('Dark mode is currently ON');
   });
 
+  it('describes the profile update actions', async () => {
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ message: { content: 'ok' } })));
+
+    await service.chat('change my name');
+
+    const prompt = sentSystemPrompt();
+    expect(prompt).toContain('[ACTION:UPDATE_NAME:New Name]');
+    expect(prompt).toContain('[ACTION:UPDATE_EMAIL:new.email@example.com]');
+  });
+
   it('reports HTTP and connection errors', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('', { status: 500, statusText: 'Server Error' }));
     expect(await service.chat('hi')).toBe('Error 500: Server Error');

@@ -68,21 +68,21 @@ export class Chatbot implements AfterViewChecked {
   /** Runs every tag in the reply and returns the text to show the user. */
   private applyAgentTags(reply: string): string {
     const { text, tags } = parseAgentTags(reply);
-    let navigated = false;
-    let acted = false;
+    const confirmations: string[] = [];
+    const failures: string[] = [];
 
     for (const tag of tags) {
       if (tag.kind === 'NAV' && NAV_ROUTES[tag.name]) {
         this.router.navigate([NAV_ROUTES[tag.name]]);
-        navigated = true;
-      } else if (tag.kind === 'ACTION' && this.actions.execute(tag.name)) {
-        acted = true;
+        confirmations.push('Navigating there now!');
+      } else if (tag.kind === 'ACTION') {
+        const result = this.actions.execute(tag.name, tag.value);
+        if (result) (result.ok ? confirmations : failures).push(result.message);
       }
     }
 
-    if (text) return text;
-    if (navigated) return 'Navigating there now!';
-    if (acted) return 'Theme updated!';
-    return reply.trim();
+    // The model's own text wins; a failed action is always reported so the reply can't claim a change that didn't happen.
+    const lines = [text || confirmations.join(' '), ...failures].filter(Boolean);
+    return lines.length ? lines.join('\n') : reply.trim();
   }
 }

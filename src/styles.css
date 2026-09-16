@@ -8,7 +8,21 @@
   --accent: #0a58ca;
   --accent-text: #ffffff;
   --input-bg: #ffffff;
-  --input-border: #ced4da;
+  --input-border: #8a939b;
+  --surface-raised: #ffffff;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --row-hover: #f1f3f5;
+  --highlight: #fff3bf;
+  --danger: #b02a37;
+
+  --badge-paid-bg: #d1e7dd;
+  --badge-paid-text: #0f5132;
+  --badge-pending-bg: #fff3cd;
+  --badge-pending-text: #664d03;
+  --badge-failed-bg: #f8d7da;
+  --badge-failed-text: #842029;
+  --badge-refunded-bg: #e2e3e5;
+  --badge-refunded-text: #41464b;
 
   --chat-bg: #ffffff;
   --chat-header-bg: #1e1e1e;
@@ -30,7 +44,21 @@ body.dark-theme {
   --accent: #3d8bfd;
   --accent-text: #0b0b0b;
   --input-bg: #1e1e1e;
-  --input-border: #555555;
+  --input-border: #7a7a7a;
+  --surface-raised: #1b1b1b;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --row-hover: #242424;
+  --highlight: #3a3212;
+  --danger: #f1a7ae;
+
+  --badge-paid-bg: #0f3d2a;
+  --badge-paid-text: #75d6a4;
+  --badge-pending-bg: #3d3000;
+  --badge-pending-text: #ffd966;
+  --badge-failed-bg: #4a1418;
+  --badge-failed-text: #f1a7ae;
+  --badge-refunded-bg: #2f3236;
+  --badge-refunded-text: #c9cdd2;
 
   --chat-bg: #1e1e1e;
   --chat-header-bg: #2a2a2a;

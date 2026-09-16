@@ -1,7 +1,54 @@
-<h1>Dashboard</h1>
-<dl>
-  <dt>Balance</dt>
-  <dd>{{ metrics['balance'] }}</dd>
-  <dt>Active users</dt>
-  <dd>{{ metrics['activeUsers'] }}</dd>
-</dl>
+<h1 class="page-title">Dashboard</h1>
+
+<section class="kpis" aria-label="Key metrics">
+  <article class="kpi">
+    <h2 class="kpi-label">Paid revenue</h2>
+    <p class="kpi-value">{{ summary.paidRevenue | currency: 'USD' }}</p>
+    <p class="kpi-hint">{{ summary.statusCounts.Paid }} paid transactions</p>
+  </article>
+  <article class="kpi">
+    <h2 class="kpi-label">Total volume</h2>
+    <p class="kpi-value">{{ summary.totalVolume | currency: 'USD' }}</p>
+    <p class="kpi-hint">{{ summary.totalTransactions }} transactions</p>
+  </article>
+  <article class="kpi">
+    <h2 class="kpi-label">Pending</h2>
+    <p class="kpi-value">{{ summary.pendingCount }}</p>
+    <p class="kpi-hint">{{ summary.pendingAmount | currency: 'USD' }} awaiting payment</p>
+  </article>
+  @if (summary.topCustomer; as top) {
+    <article class="kpi">
+      <h2 class="kpi-label">Top customer</h2>
+      <p class="kpi-value kpi-value-text">{{ top.customer }}</p>
+      <p class="kpi-hint">{{ top.total | currency: 'USD' }} paid + pending</p>
+    </article>
+  }
+</section>
+
+<section class="panel" aria-labelledby="transactions-heading">
+  <h2 id="transactions-heading" class="panel-title">Recent transactions</h2>
+  <div class="table-scroll" tabindex="0" role="region" aria-labelledby="transactions-heading">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Transaction ID</th>
+          <th scope="col">Customer</th>
+          <th scope="col" class="num">Amount</th>
+          <th scope="col">Status</th>
+          <th scope="col">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (tx of transactions; track tx.id) {
+          <tr>
+            <td class="mono">{{ tx.id }}</td>
+            <td>{{ tx.customer }}</td>
+            <td class="num">{{ tx.amount | currency: 'USD' }}</td>
+            <td><span [class]="statusClass[tx.status]">{{ tx.status }}</span></td>
+            <td><time [attr.datetime]="tx.date">{{ tx.date | date: 'mediumDate' : 'UTC' }}</time></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
