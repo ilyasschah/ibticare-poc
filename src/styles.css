@@ -1,1 +1,64 @@
-/* You can add global styles to this file, and also import other style files */
+/* Theme tokens. `body.dark-theme` is toggled by ActionRegistryService. */
+:root {
+  --bg: #ffffff;
+  --text: #212529;
+  --text-muted: #495057;
+  --surface: #f8f9fa;
+  --border: #dddddd;
+  --accent: #0a58ca;
+  --accent-text: #ffffff;
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+
+  --chat-bg: #ffffff;
+  --chat-header-bg: #1e1e1e;
+  --chat-header-text: #ffffff;
+  --chat-messages-bg: #f8f9fa;
+  --chat-bot-bubble: #e9ecef;
+  --chat-bot-text: #212529;
+  --chat-user-bubble: #0a58ca;
+  --chat-user-text: #ffffff;
+  --chat-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-theme {
+  --bg: #121212;
+  --text: #e6e6e6;
+  --text-muted: #b0b0b0;
+  --surface: #1e1e1e;
+  --border: #333333;
+  --accent: #3d8bfd;
+  --accent-text: #0b0b0b;
+  --input-bg: #1e1e1e;
+  --input-border: #555555;
+
+  --chat-bg: #1e1e1e;
+  --chat-header-bg: #2a2a2a;
+  --chat-header-text: #f1f1f1;
+  --chat-messages-bg: #161616;
+  --chat-bot-bubble: #2c2c2c;
+  --chat-bot-text: #e6e6e6;
+  --chat-user-bubble: #3d8bfd;
+  --chat-user-text: #0b0b0b;
+  --chat-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+input,
+select,
+textarea {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+
+body.dark-theme a {
+  color: var(--accent);
+}

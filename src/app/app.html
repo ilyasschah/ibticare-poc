@@ -1,12 +1,12 @@
-<nav style="padding: 15px; background: #f8f9fa; margin-bottom: 20px; border-bottom: 1px solid #ddd; display: flex; gap: 10px;">
-  <a routerLink="/dashboard" style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-family: sans-serif; cursor: pointer;">Dashboard</a>
-  <a routerLink="/profile" style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-family: sans-serif; cursor: pointer;">Profile</a>
-  <a routerLink="/settings" style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-family: sans-serif; cursor: pointer;">Settings</a>
+<nav class="app-nav">
+  <a routerLink="/dashboard" class="app-nav-link">Dashboard</a>
+  <a routerLink="/profile" class="app-nav-link">Profile</a>
+  <a routerLink="/settings" class="app-nav-link">Settings</a>
 </nav>
 
-<div style="padding: 20px; font-family: sans-serif;">
+<main class="app-main">
   <router-outlet></router-outlet>
-</div>
+</main>
 
 <!-- The floating chatbot widget -->
 <app-chatbot></app-chatbot>

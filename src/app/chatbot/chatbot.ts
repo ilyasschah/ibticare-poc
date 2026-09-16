@@ -1,20 +1,28 @@
 import { Component, inject, ChangeDetectorRef, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OllamaService } from './ollama';
+import { ActionRegistryService } from '../services/action-registry.service';
+import { parseAgentTags } from './agent-tags';
+
+const NAV_ROUTES: Record<string, string> = {
+  SETTINGS: '/settings',
+  PROFILE: '/profile',
+  DASHBOARD: '/dashboard'
+};
 
 @Component({
   selector: 'app-chatbot',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './chatbot.html',
   styleUrl: './chatbot.css'
 })
 export class Chatbot implements AfterViewChecked {
   private ollama = inject(OllamaService);
+  private actions = inject(ActionRegistryService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
-  
+
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
   public isOpen: boolean = true;
@@ -46,30 +54,35 @@ export class Chatbot implements AfterViewChecked {
     if (!text) return;
 
     this.messages.push({ text: text, isBot: false });
-    inputBox.value = ''; 
+    inputBox.value = '';
 
     this.messages.push({ text: 'Thinking...', isBot: true });
     this.cdr.detectChanges();
 
-    const currentRoute = this.router.url;
-    let reply = await this.ollama.chat(text, currentRoute);
+    const reply = await this.ollama.chat(text);
 
-    if (reply.includes('[NAV:SETTINGS]')) {
-      this.router.navigate(['/settings']);
-      reply = reply.replace('[NAV:SETTINGS]', '').trim();
-    } else if (reply.includes('[NAV:PROFILE]')) {
-      this.router.navigate(['/profile']);
-      reply = reply.replace('[NAV:PROFILE]', '').trim();
-    } else if (reply.includes('[NAV:DASHBOARD]')) {
-      this.router.navigate(['/dashboard']);
-      reply = reply.replace('[NAV:DASHBOARD]', '').trim();
-    }
-
-    if (!reply) {
-      reply = "Navigating there now!";
-    }
-
-    this.messages[this.messages.length - 1].text = reply;
+    this.messages[this.messages.length - 1].text = this.applyAgentTags(reply);
     this.cdr.detectChanges();
+  }
+
+  /** Runs every tag in the reply and returns the text to show the user. */
+  private applyAgentTags(reply: string): string {
+    const { text, tags } = parseAgentTags(reply);
+    let navigated = false;
+    let acted = false;
+
+    for (const tag of tags) {
+      if (tag.kind === 'NAV' && NAV_ROUTES[tag.name]) {
+        this.router.navigate([NAV_ROUTES[tag.name]]);
+        navigated = true;
+      } else if (tag.kind === 'ACTION' && this.actions.execute(tag.name)) {
+        acted = true;
+      }
+    }
+
+    if (text) return text;
+    if (navigated) return 'Navigating there now!';
+    if (acted) return 'Theme updated!';
+    return reply.trim();
   }
 }

@@ -1,25 +1,25 @@
 @if (isOpen) {
-  <div class="chat-container">
+  <div class="chat-container" role="dialog" aria-label="ibticare agent">
     <div class="chat-header">
       <span>ibticare agent</span>
-      <button class="chat-toggle-btn" (click)="toggleChat()">−</button>
+      <button class="chat-toggle-btn" (click)="toggleChat()" aria-label="Minimize chat">−</button>
     </div>
-    
-    <div #scrollContainer class="chat-messages">
+
+    <div #scrollContainer class="chat-messages" aria-live="polite">
       @for (msg of messages; track msg) {
-        <div class="message" [ngClass]="msg.isBot ? 'bot' : 'user'">
+        <div class="message" [class.bot]="msg.isBot" [class.user]="!msg.isBot">
           {{ msg.text }}
         </div>
       }
     </div>
-    
+
     <div class="chat-input-area">
-      <input #chatInput (keyup.enter)="sendMessage(chatInput)" type="text" placeholder="Type a command..." class="chat-input" />
+      <input #chatInput (keyup.enter)="sendMessage(chatInput)" type="text" placeholder="Type a command..." aria-label="Message the agent" class="chat-input" />
       <button class="chat-send" (click)="sendMessage(chatInput)">Send</button>
     </div>
   </div>
 } @else {
-  <button class="chat-launcher" (click)="toggleChat()">
+  <button class="chat-launcher" (click)="toggleChat()" aria-label="Open chat">
     💬
   </button>
 }
