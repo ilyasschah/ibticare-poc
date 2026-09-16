@@ -13,7 +13,6 @@ export class Chatbot implements AfterViewChecked {
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   
-  // Reference to the messages container element
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
   public isOpen: boolean = true;
@@ -22,7 +21,6 @@ export class Chatbot implements AfterViewChecked {
     { text: 'Hello! I am your ibticare agent. Ask me to navigate anywhere!', isBot: true }
   ];
 
-  // Fires automatically after Angular renders template changes
   ngAfterViewChecked() {
     this.scrollToBottom();
   }
@@ -51,7 +49,9 @@ export class Chatbot implements AfterViewChecked {
     this.messages.push({ text: 'Thinking...', isBot: true });
     this.cdr.detectChanges();
 
-    let reply = await this.ollama.chat(text);
+    // Pass current URL (e.g., '/settings', '/profile', '/dashboard') to Ollama
+    const currentRoute = this.router.url;
+    let reply = await this.ollama.chat(text, currentRoute);
 
     if (reply.includes('[NAV:SETTINGS]')) {
       this.router.navigate(['/settings']);
