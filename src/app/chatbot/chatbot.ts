@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { Router } from '@angular/router';
 import { OllamaService } from './ollama';
 
@@ -8,14 +8,38 @@ import { OllamaService } from './ollama';
   templateUrl: './chatbot.html',
   styleUrl: './chatbot.css'
 })
-export class Chatbot {
+export class Chatbot implements AfterViewChecked {
   private ollama = inject(OllamaService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
   
+  // Reference to the messages container element
+  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+
+  public isOpen: boolean = true;
+
   messages: { text: string, isBot: boolean }[] = [
     { text: 'Hello! I am your ibticare agent. Ask me to navigate anywhere!', isBot: true }
   ];
+
+  // Fires automatically after Angular renders template changes
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.scrollContainer) {
+        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Scroll error:', err);
+    }
+  }
+
+  toggleChat() {
+    this.isOpen = !this.isOpen;
+  }
 
   async sendMessage(inputBox: HTMLInputElement) {
     const text = inputBox.value.trim();
@@ -29,7 +53,6 @@ export class Chatbot {
 
     let reply = await this.ollama.chat(text);
 
-    // Parse navigation tags and update route
     if (reply.includes('[NAV:SETTINGS]')) {
       this.router.navigate(['/settings']);
       reply = reply.replace('[NAV:SETTINGS]', '').trim();
