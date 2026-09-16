@@ -1,0 +1,21 @@
+<div class="chat-container">
+  <div class="chat-header">ibticare agent</div>
+  
+  <div class="chat-messages">
+    <!-- We loop through the messages array to draw the chat bubbles -->
+    @for (msg of messages; track msg) {
+      <div class="message" 
+           [style.background]="msg.isBot ? '#e9ecef' : '#007bff'" 
+           [style.color]="msg.isBot ? '#333' : 'white'" 
+           style="margin-bottom: 10px; padding: 10px; border-radius: 8px; font-size: 14px;">
+        {{ msg.text }}
+      </div>
+    }
+  </div>
+  
+  <div class="chat-input-area">
+    <!-- Notice the #chatInput variable. We pass this specific HTML element to our function -->
+    <input #chatInput (keyup.enter)="sendMessage(chatInput)" type="text" placeholder="Type a command..." class="chat-input" />
+    <button class="chat-send" (click)="sendMessage(chatInput)">Send</button>
+  </div>
+</div>
