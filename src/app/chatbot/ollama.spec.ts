@@ -2,19 +2,29 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { OllamaService } from './ollama';
 import { OLLAMA_HOSTS } from './ollama-hosts';
-import { ScreenContextService } from '../services/screen-context.service';
-import { ActionRegistryService } from '../services/action-registry.service';
+import { AgentPromptService } from '../agent/agent-prompt.service';
 
 describe('OllamaService', () => {
   let service: OllamaService;
-  let screenContext: ScreenContextService;
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
+  const buildPrompt = vi.fn(() => 'SYSTEM PROMPT FROM THE AGENT LAYER');
+
   beforeEach(() => {
-    try { localStorage.clear(); } catch { /* Node may expose a non-functional localStorage. */ }
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    try {
+      localStorage.clear();
+    } catch {
+      /* Node may expose a non-functional localStorage. */
+    }
+    buildPrompt.mockClear();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: AgentPromptService, useValue: { build: buildPrompt } },
+      ],
+    });
     service = TestBed.inject(OllamaService);
-    screenContext = TestBed.inject(ScreenContextService);
     fetchSpy = vi.spyOn(globalThis, 'fetch');
   });
 
@@ -34,17 +44,13 @@ describe('OllamaService', () => {
     });
   }
 
-  function sentSystemPrompt(): string {
+  function sentMessages(): { role: string; content: string }[] {
     const init = fetchSpy.mock.calls[0][1] as RequestInit;
-    const body = JSON.parse(init.body as string) as {
-      messages: { role: string; content: string }[];
-    };
-    return body.messages.find((m) => m.role === 'system')!.content;
+    return (JSON.parse(init.body as string) as { messages: { role: string; content: string }[] })
+      .messages;
   }
 
-  it('sends the screen context and the user prompt, and returns the reply', async () => {
-    screenContext.setPageTitle('Dashboard');
-    screenContext.setMetrics({ balance: '$54,200', activeUsers: 120 });
+  it('sends the agent prompt as the system message and returns the reply', async () => {
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify({ message: { content: 'You have $54,200.' } })),
     );
@@ -52,34 +58,20 @@ describe('OllamaService', () => {
     const reply = await service.chat('How much money do I have?');
 
     expect(reply).toBe('You have $54,200.');
-    const prompt = sentSystemPrompt();
-    expect(prompt).toContain('Page title: "Dashboard"');
-    expect(prompt).toContain('"balance":"$54,200"');
-    expect(prompt).toContain('"activeUsers":120');
-    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.messages[1]).toEqual({ role: 'user', content: 'How much money do I have?' });
+    expect(buildPrompt).toHaveBeenCalledOnce();
+    expect(sentMessages()).toEqual([
+      { role: 'system', content: 'SYSTEM PROMPT FROM THE AGENT LAYER' },
+      { role: 'user', content: 'How much money do I have?' },
+    ]);
   });
 
-  it('describes the dark mode actions and the current theme', async () => {
-    TestBed.inject(ActionRegistryService).toggleDarkMode(true);
+  it('rebuilds the prompt on every message, so answers track live data', async () => {
     fetchSpy.mockResolvedValue(new Response(JSON.stringify({ message: { content: 'ok' } })));
 
-    await service.chat('turn on dark mode');
+    await service.chat('first');
+    await service.chat('second');
 
-    const prompt = sentSystemPrompt();
-    expect(prompt).toContain('[ACTION:DARK_MODE_ON]');
-    expect(prompt).toContain('[ACTION:DARK_MODE_OFF]');
-    expect(prompt).toContain('Dark mode is currently ON');
-  });
-
-  it('describes the profile update actions', async () => {
-    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ message: { content: 'ok' } })));
-
-    await service.chat('change my name');
-
-    const prompt = sentSystemPrompt();
-    expect(prompt).toContain('[ACTION:UPDATE_NAME:New Name]');
-    expect(prompt).toContain('[ACTION:UPDATE_EMAIL:new.email@example.com]');
+    expect(buildPrompt).toHaveBeenCalledTimes(2);
   });
 
   it('reports HTTP errors, and names the unreachable server on a connection error', async () => {

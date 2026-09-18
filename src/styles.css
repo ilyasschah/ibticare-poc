@@ -1,4 +1,4 @@
-/* Theme tokens. `body.dark-theme` is toggled by ActionRegistryService. */
+/* Theme tokens. `body.dark-theme` is toggled by ThemeService. */
 :root {
   --bg: #ffffff;
   --text: #212529;

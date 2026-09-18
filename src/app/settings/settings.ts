@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OllamaService } from '../chatbot/ollama';
-import { ScreenContextService } from '../services/screen-context.service';
 
 @Component({
   selector: 'app-settings',
@@ -12,8 +11,6 @@ import { ScreenContextService } from '../services/screen-context.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Settings {
-  private readonly screenContext = inject(ScreenContextService);
-
   protected readonly ollama = inject(OllamaService);
   protected readonly busy = signal(false);
   /** Set after a manual attempt that found nothing, so the page can explain what it tried. */
@@ -25,11 +22,8 @@ export class Settings {
   });
 
   constructor() {
-    this.screenContext.setPageTitle('Settings');
-
     this.form.controls.model.valueChanges.pipe(takeUntilDestroyed()).subscribe((model) => {
       this.ollama.selectedModel.set(model);
-      this.publishMetrics();
     });
 
     // Startup discovery may still be running, or may have already moved to another host.
@@ -61,7 +55,6 @@ export class Settings {
     this.form.controls.baseUrl.setValue(this.ollama.baseUrl());
     this.syncModelControl();
     if (!connected) this.triedHosts.set(this.ollama.candidates());
-    this.publishMetrics();
   }
 
   private syncModelControl(): void {
@@ -72,14 +65,5 @@ export class Settings {
     } else {
       control.disable({ emitEvent: false });
     }
-  }
-
-  private publishMetrics(): void {
-    this.screenContext.setMetrics({
-      ollamaUrl: this.ollama.baseUrl(),
-      connection: this.ollama.status(),
-      selectedModel: this.ollama.selectedModel(),
-      availableModels: [...this.ollama.models()],
-    });
   }
 }

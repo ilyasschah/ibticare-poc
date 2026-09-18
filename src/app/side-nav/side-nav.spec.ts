@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { NAV_LINKS, SideNav } from './side-nav';
+import { SideNav } from './side-nav';
+import { NAV_LINKS } from '../navigation';
 
 /** Stub routes so clicking a drawer link actually navigates. */
 const TEST_ROUTES = NAV_LINKS.map((link) => ({ path: link.path.slice(1), children: [] }));

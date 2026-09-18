@@ -3,8 +3,8 @@ import { provideRouter } from '@angular/router';
 
 import { Profile } from './profile';
 import { UserProfileService } from '../services/user-profile.service';
-import { ScreenContextService } from '../services/screen-context.service';
-import { ActionRegistryService } from '../services/action-registry.service';
+import { AgentActionService } from '../agent/agent-action.service';
+import { provideAgent } from '../agent/provide-agent';
 
 describe('Profile', () => {
   let fixture: ComponentFixture<Profile>;
@@ -22,7 +22,7 @@ describe('Profile', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Profile],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), provideAgent()],
     }).compileComponents();
 
     profile = TestBed.inject(UserProfileService);
@@ -31,14 +31,12 @@ describe('Profile', () => {
     await fixture.whenStable();
   });
 
-  it('fills the form from the saved profile and publishes it to the screen context', () => {
+  it('fills the form from the saved profile', () => {
     expect(input('profile-name').value).toBe(profile.profile().name);
     expect(input('profile-email').value).toBe(profile.profile().email);
-    expect(el.querySelector<HTMLSelectElement>('#profile-role')!.value).toBe(profile.profile().role);
-
-    const { pageTitle, metrics } = TestBed.inject(ScreenContextService).context();
-    expect(pageTitle).toBe('Profile');
-    expect(metrics['userProfile']).toEqual(profile.profile());
+    expect(el.querySelector<HTMLSelectElement>('#profile-role')!.value).toBe(
+      profile.profile().role,
+    );
   });
 
   it('saves edits made in the form', async () => {
@@ -63,14 +61,13 @@ describe('Profile', () => {
   it('reflects an assistant update without losing unsaved edits to other fields', async () => {
     type('profile-email', 'draft@example.com');
 
-    TestBed.inject(ActionRegistryService).execute('UPDATE_NAME', 'Sarah Connor');
+    TestBed.inject(AgentActionService).execute('ACTION', 'UPDATE_NAME', 'Sarah Connor');
     await fixture.whenStable();
 
     expect(input('profile-name').value).toBe('Sarah Connor');
     expect(input('profile-email').value).toBe('draft@example.com');
-    expect(el.querySelector('[role="status"]')!.textContent).toContain('Name updated by the assistant.');
-    expect(TestBed.inject(ScreenContextService).context().metrics['userProfile']).toEqual(
-      expect.objectContaining({ name: 'Sarah Connor' }),
+    expect(el.querySelector('[role="status"]')!.textContent).toContain(
+      'Name updated by the assistant.',
     );
   });
 });

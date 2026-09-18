@@ -7,21 +7,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { OllamaService } from './ollama';
-import { ActionRegistryService } from '../services/action-registry.service';
-import { parseAgentTags } from './agent-tags';
+import { AgentActionService } from '../agent/agent-action.service';
+import { parseAgentTags } from '../agent/agent-tags';
 
 export interface ChatMessage {
   text: string;
   isBot: boolean;
 }
-
-const NAV_ROUTES: Record<string, string> = {
-  SETTINGS: '/settings',
-  PROFILE: '/profile',
-  DASHBOARD: '/dashboard',
-};
 
 @Component({
   selector: 'app-chatbot',
@@ -31,8 +24,7 @@ const NAV_ROUTES: Record<string, string> = {
 })
 export class Chatbot {
   private readonly ollama = inject(OllamaService);
-  private readonly actions = inject(ActionRegistryService);
-  private readonly router = inject(Router);
+  private readonly agent = inject(AgentActionService);
 
   private readonly scrollContainer = viewChild<ElementRef<HTMLElement>>('scrollContainer');
 
@@ -69,23 +61,19 @@ export class Chatbot {
     this.messages.update((list) => [...list.slice(0, -1), { text: reply, isBot: true }]);
   }
 
-  /** Runs every tag in the reply and returns the text to show the user. */
+  /** Runs every tag in the reply through the agent registry and returns the text to show. */
   private applyAgentTags(reply: string): string {
     const { text, tags } = parseAgentTags(reply);
     const confirmations: string[] = [];
     const failures: string[] = [];
 
     for (const tag of tags) {
-      if (tag.kind === 'NAV' && NAV_ROUTES[tag.name]) {
-        this.router.navigate([NAV_ROUTES[tag.name]]);
-        confirmations.push('Navigating there now!');
-      } else if (tag.kind === 'ACTION') {
-        const result = this.actions.execute(tag.name, tag.value);
-        if (result) (result.ok ? confirmations : failures).push(result.message);
-      }
+      const result = this.agent.execute(tag.kind, tag.name, tag.value);
+      if (result) (result.ok ? confirmations : failures).push(result.message);
     }
 
-    // The model's own text wins; a failed action is always reported so the reply can't claim a change that didn't happen.
+    // The model's own text wins; a failed action is always reported so the reply can't claim a
+    // change that did not happen.
     const lines = [text || confirmations.join(' '), ...failures].filter(Boolean);
     return lines.length ? lines.join('\n') : reply.trim();
   }

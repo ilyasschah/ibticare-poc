@@ -1,6 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { ActionRegistryService } from '../services/action-registry.service';
-import { ScreenContextService } from '../services/screen-context.service';
+import { AgentPromptService } from '../agent/agent-prompt.service';
 import { DEFAULT_BASE_URL, DEFAULT_MODEL, OLLAMA_HOSTS, PROBE_TIMEOUT_MS } from './ollama-hosts';
 
 interface OllamaTagsResponse {
@@ -18,8 +17,7 @@ const MODEL_STORAGE_KEY = 'ibticare.ollama.model';
 
 @Injectable({ providedIn: 'root' })
 export class OllamaService {
-  private readonly screenContext = inject(ScreenContextService);
-  private readonly actions = inject(ActionRegistryService);
+  private readonly prompt = inject(AgentPromptService);
 
   /** Where Ollama listens. Set automatically by discovery, or manually on the Settings page. */
   readonly baseUrl = signal(readStored(BASE_URL_STORAGE_KEY) ?? DEFAULT_BASE_URL);
@@ -101,7 +99,7 @@ export class OllamaService {
         body: JSON.stringify({
           model: this.selectedModel(),
           messages: [
-            { role: 'system', content: this.buildSystemPrompt() },
+            { role: 'system', content: this.prompt.build() },
             { role: 'user', content: prompt },
           ],
           stream: false,
@@ -144,39 +142,6 @@ export class OllamaService {
     if (models.length && !models.includes(this.selectedModel())) {
       this.selectedModel.set(models[0]);
     }
-  }
-
-  buildSystemPrompt(): string {
-    const { pageTitle, route, metrics } = this.screenContext.context();
-    const theme = this.actions.isDarkMode() ? 'ON' : 'OFF';
-
-    return `You are the ibticare desktop assistant.
-
-CURRENT SCREEN:
-- Page title: "${pageTitle}"
-- Route: "${route}"
-- Visible data (JSON): ${JSON.stringify(metrics)}
-- Dark mode is currently ${theme}.
-
-RULES:
-1. If the user asks where they are, answer using the current screen context. DO NOT output tags.
-2. When the user asks about data (e.g. "How many pending transactions are there?"), answer ONLY from Visible data.
-   Prefer the precomputed summary values over doing math yourself.
-   If the value is not there, say you cannot see it on this screen. Never invent numbers.
-3. ONLY output a navigation tag if the user explicitly asks to GO, OPEN, or NAVIGATE to a page:
-   - Go to Settings: [NAV:SETTINGS]
-   - Go to Profile: [NAV:PROFILE]
-   - Go to Dashboard: [NAV:DASHBOARD]
-4. ONLY output a theme tag if the user explicitly asks to change the theme:
-   - Enable dark mode: [ACTION:DARK_MODE_ON]
-   - Disable dark mode / switch to light mode: [ACTION:DARK_MODE_OFF]
-5. You CAN update the user's profile. ONLY output a profile tag if the user explicitly asks to change their name or email.
-   Put the new value after the second colon, without quotes:
-   - Change name: [ACTION:UPDATE_NAME:New Name]
-   - Change email: [ACTION:UPDATE_EMAIL:new.email@example.com]
-   Example: user says "Change my name to Sarah Connor" -> "Sure, updating your name. [ACTION:UPDATE_NAME:Sarah Connor]"
-   The user's role cannot be changed by you; tell them to edit it on the Profile page.
-6. Always include a short friendly response along with any tag.`;
   }
 }
 

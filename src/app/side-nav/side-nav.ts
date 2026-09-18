@@ -7,17 +7,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-
-export interface NavLink {
-  path: string;
-  label: string;
-}
-
-export const NAV_LINKS: readonly NavLink[] = [
-  { path: '/dashboard', label: 'Dashboard' },
-  { path: '/profile', label: 'Profile' },
-  { path: '/settings', label: 'Settings' },
-];
+import { NAV_LINKS } from '../navigation';
 
 const FOCUSABLE = 'a[href], button:not([disabled])';
 

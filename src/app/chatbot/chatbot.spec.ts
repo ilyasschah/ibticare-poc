@@ -3,13 +3,23 @@ import { Router, provideRouter } from '@angular/router';
 
 import { Chatbot } from './chatbot';
 import { OllamaService } from './ollama';
-import { ActionRegistryService } from '../services/action-registry.service';
+import { provideAgent } from '../agent/provide-agent';
+import { ThemeService } from '../services/theme.service';
 import { UserProfileService } from '../services/user-profile.service';
 
 describe('Chatbot', () => {
   let component: Chatbot;
   let fixture: ComponentFixture<Chatbot>;
   const chat = vi.fn<(prompt: string) => Promise<string>>();
+
+  /** Enough of OllamaService for the settings domain to register against. */
+  const ollamaStub = {
+    chat,
+    baseUrl: () => 'http://127.0.0.1:11434',
+    status: () => 'online' as const,
+    selectedModel: Object.assign(() => 'qwen2.5-coder:1.5b', { set: vi.fn() }),
+    models: () => ['qwen2.5-coder:1.5b', 'qwen2.5-coder:7b'],
+  };
 
   beforeEach(async () => {
     try {
@@ -22,7 +32,11 @@ describe('Chatbot', () => {
 
     await TestBed.configureTestingModule({
       imports: [Chatbot],
-      providers: [provideRouter([]), { provide: OllamaService, useValue: { chat } }],
+      providers: [
+        provideRouter([]),
+        provideAgent(),
+        { provide: OllamaService, useValue: ollamaStub },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Chatbot);
@@ -64,7 +78,7 @@ describe('Chatbot', () => {
 
     expect(await send('open settings in dark mode')).toBe('On it!');
     expect(navigate).toHaveBeenCalledWith(['/settings']);
-    expect(TestBed.inject(ActionRegistryService).isDarkMode()).toBe(true);
+    expect(TestBed.inject(ThemeService).isDarkMode()).toBe(true);
   });
 
   it('updates the profile from a tagged reply', async () => {
@@ -85,9 +99,14 @@ describe('Chatbot', () => {
     expect(profile.profile().email).toBe(before);
   });
 
-  it('falls back to a navigation message when the reply is only a NAV tag', async () => {
+  it('falls back to the action confirmation when the reply is only a tag', async () => {
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     chat.mockResolvedValue('[NAV:PROFILE]');
-    expect(await send('go to profile')).toBe('Navigating there now!');
+    expect(await send('go to profile')).toBe('Opening Profile.');
+  });
+
+  it('ignores a tag the model invented', async () => {
+    chat.mockResolvedValue('Done! [ACTION:LAUNCH_ROCKET]');
+    expect(await send('launch a rocket')).toBe('Done!');
   });
 });

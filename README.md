@@ -4,18 +4,76 @@ A proof of concept for a **screen-aware desktop assistant**: an Angular app wrap
 floating chat widget backed by a local [Ollama](https://ollama.com) model. The assistant can see what page
 you are on and what data is on it, and can act on the app — navigate, switch the theme, and edit your profile.
 
-## How it works
+## Architecture
 
-| Piece           | File                                          | Role                                                                             |
-| --------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Screen context  | `src/app/services/screen-context.service.ts`  | Tracks route, page title and the metrics each page publishes                     |
-| Action registry | `src/app/services/action-registry.service.ts` | Runs `[ACTION:…]` tags (dark mode, profile edits) and reports success or failure |
-| Tag parser      | `src/app/chatbot/agent-tags.ts`               | Pulls `[NAV:…]` / `[ACTION:…]` tags out of a model reply                         |
-| Ollama client   | `src/app/chatbot/ollama.ts`                   | Builds the system prompt and calls `/api/chat`                                   |
-| Chat widget     | `src/app/chatbot/chatbot.ts`                  | Renders the conversation and applies the tags                                    |
+The assistant is not wired to any screen. Three layers keep it that way:
 
-Each page publishes **pre-computed, pre-formatted** metrics (see `Dashboard`) so small models never have to do
-arithmetic, and the system prompt forbids answering with anything not in that data.
+```
+  Domains (own the data and the rules)
+    UserProfileService   TransactionsService   ThemeService   OllamaService
+                              |
+  Adapters (one file per domain, the only place that knows the agent exists)
+    profile.agent.ts    dashboard.agent.ts    settings.agent.ts    navigation.agent.ts
+                              |  register(context) / register(action)
+  Agent runtime (generic — knows nothing about profiles or transactions)
+    AgentContextService  ......  what the assistant can READ
+    AgentActionService   ......  what the assistant can DO
+    AgentPromptService   ......  renders both into the system prompt
+    agent-tags.ts        ......  parses the model's reply back into actions
+```
+
+**Every domain registers once at startup**, in `provideAgent()` — not when its page is visited.
+That single decision is what lets the user ask "who is my best customer?" from the Profile page, or
+"what is my user name?" from Settings. The current route is tracked separately and only tells the
+model where the user is looking; it never limits what can be answered.
+
+**The prompt is generated, never hand-written.** `AgentPromptService` walks the two registries, so
+registering an action automatically teaches the model the tag, its meaning and its parameter. Adding
+a capability is one adapter file and one line in `provideAgent()` — the prompt builder, the chat
+widget and the dispatcher all pick it up untouched.
+
+**Actions report the truth.** Every action returns `{ ok, message }`. If the model claims "I updated
+your email" but validation rejected the value, the failure is appended to the reply, so the
+assistant can never announce a change that did not happen.
+
+**The tag protocol is contained.** `AgentPromptService` and `agent-tags.ts` are the only files that
+know the model speaks in `[NAV:…]` / `[ACTION:…]`. Moving to native tool calling would mean
+rewriting those two; no domain would change.
+
+### Adding a capability
+
+```ts
+// src/app/agent/domains/billing.agent.ts
+export function registerBillingDomain(): void {
+  const context = inject(AgentContextService);
+  const billing = inject(BillingService);
+
+  context.register({
+    id: 'billing',
+    description: 'Outstanding invoices and their due dates.',
+    snapshot: () => ({ overdue: billing.overdueCount(), total: formatUsd(billing.total()) }),
+    examples: () => [
+      { question: 'how much is overdue?', answer: `${formatUsd(billing.total())}.` },
+    ],
+  });
+}
+```
+
+Add `registerBillingDomain()` to `provideAgent()` and the assistant can answer billing questions
+from every screen.
+
+### Two details that make a 1.5B model usable
+
+- **Pre-computed, pre-formatted data.** `summarizeTransactions` does the arithmetic and `formatUsd`
+  does the formatting, so the model quotes `$15,700.00` instead of adding a column up and getting it
+  wrong.
+- **Worked examples, generated from live data.** Each domain supplies its own question/answer pairs,
+  rendered at the end of the prompt. Small models imitate the last thing they read far more reliably
+  than they follow a written rule — before this, `qwen2.5-coder:1.5b` answered "what is my user
+  name?" by trying to navigate to the Profile page.
+
+Tag parsing is deliberately lenient for the same reason: a bare `[PROFILE]` is resolved by name, and
+anything bracket-shaped that resolves to nothing is stripped rather than shown to the user.
 
 ## Requirements
 

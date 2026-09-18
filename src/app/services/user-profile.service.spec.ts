@@ -29,7 +29,13 @@ describe('UserProfileService', () => {
   });
 
   it('saves a full profile', () => {
-    expect(service.save({ name: 'Kyle Reese', email: 'kyle@example.com', role: 'Viewer' })).toBeNull();
-    expect(service.profile()).toEqual({ name: 'Kyle Reese', email: 'kyle@example.com', role: 'Viewer' });
+    expect(
+      service.save({ name: 'Kyle Reese', email: 'kyle@example.com', role: 'Viewer' }),
+    ).toBeNull();
+    expect(service.profile()).toEqual({
+      name: 'Kyle Reese',
+      email: 'kyle@example.com',
+      role: 'Viewer',
+    });
   });
 });

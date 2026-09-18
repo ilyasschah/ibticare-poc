@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ScreenContextService } from '../services/screen-context.service';
 import {
   EMAIL_PATTERN,
   NAME_MAX_LENGTH,
@@ -21,7 +27,6 @@ const FIELD_LABELS: Record<ProfileField, string> = { name: 'Name', email: 'Email
 })
 export class Profile {
   private readonly userProfile = inject(UserProfileService);
-  private readonly screenContext = inject(ScreenContextService);
 
   protected readonly roles = USER_ROLES;
   protected readonly nameMaxLength = NAME_MAX_LENGTH;
@@ -38,15 +43,10 @@ export class Profile {
   private synced: UserProfile | null = null;
 
   constructor() {
-    this.screenContext.setPageTitle('Profile');
-
+    // Keep the form in step with saved values, including changes made by the assistant.
     effect(() => {
       const profile = this.userProfile.profile();
       untracked(() => this.syncForm(profile));
-      this.screenContext.setMetrics({
-        userProfile: { ...profile },
-        assistantCanUpdate: ['name', 'email'],
-      });
     });
   }
 
@@ -85,7 +85,9 @@ export class Profile {
       return;
     }
 
-    const changed = (Object.keys(FIELD_LABELS) as ProfileField[]).filter((f) => previous[f] !== profile[f]);
+    const changed = (Object.keys(FIELD_LABELS) as ProfileField[]).filter(
+      (f) => previous[f] !== profile[f],
+    );
     if (!changed.length) return;
 
     for (const field of changed) {
@@ -94,6 +96,8 @@ export class Profile {
       control.markAsPristine();
     }
     this.assistantUpdated.update((set) => new Set([...set, ...changed]));
-    this.status.set(`${changed.map((f) => FIELD_LABELS[f]).join(' and ')} updated by the assistant.`);
+    this.status.set(
+      `${changed.map((f) => FIELD_LABELS[f]).join(' and ')} updated by the assistant.`,
+    );
   }
 }

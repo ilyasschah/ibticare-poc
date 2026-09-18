@@ -3,20 +3,20 @@
 <section class="kpis" aria-label="Key metrics">
   <article class="kpi">
     <h2 class="kpi-label">Paid revenue</h2>
-    <p class="kpi-value">{{ summary.paidRevenue | currency: 'USD' }}</p>
-    <p class="kpi-hint">{{ summary.statusCounts.Paid }} paid transactions</p>
+    <p class="kpi-value">{{ summary().paidRevenue | currency: 'USD' }}</p>
+    <p class="kpi-hint">{{ summary().statusCounts.Paid }} paid transactions</p>
   </article>
   <article class="kpi">
     <h2 class="kpi-label">Total volume</h2>
-    <p class="kpi-value">{{ summary.totalVolume | currency: 'USD' }}</p>
-    <p class="kpi-hint">{{ summary.totalTransactions }} transactions</p>
+    <p class="kpi-value">{{ summary().totalVolume | currency: 'USD' }}</p>
+    <p class="kpi-hint">{{ summary().totalTransactions }} transactions</p>
   </article>
   <article class="kpi">
     <h2 class="kpi-label">Pending</h2>
-    <p class="kpi-value">{{ summary.pendingCount }}</p>
-    <p class="kpi-hint">{{ summary.pendingAmount | currency: 'USD' }} awaiting payment</p>
+    <p class="kpi-value">{{ summary().pendingCount }}</p>
+    <p class="kpi-hint">{{ summary().pendingAmount | currency: 'USD' }} awaiting payment</p>
   </article>
-  @if (summary.topCustomer; as top) {
+  @if (summary().topCustomer; as top) {
     <article class="kpi">
       <h2 class="kpi-label">Top customer</h2>
       <p class="kpi-value kpi-value-text">{{ top.customer }}</p>
@@ -39,13 +39,17 @@
         </tr>
       </thead>
       <tbody>
-        @for (tx of transactions; track tx.id) {
+        @for (tx of transactions(); track tx.id) {
           <tr>
             <td class="mono">{{ tx.id }}</td>
             <td>{{ tx.customer }}</td>
             <td class="num">{{ tx.amount | currency: 'USD' }}</td>
-            <td><span [class]="statusClass[tx.status]">{{ tx.status }}</span></td>
-            <td><time [attr.datetime]="tx.date">{{ tx.date | date: 'mediumDate' : 'UTC' }}</time></td>
+            <td>
+              <span [class]="statusClass[tx.status]">{{ tx.status }}</span>
+            </td>
+            <td>
+              <time [attr.datetime]="tx.date">{{ tx.date | date: 'mediumDate' : 'UTC' }}</time>
+            </td>
           </tr>
         }
       </tbody>

@@ -9,6 +9,7 @@ import {
 import { provideRouter } from '@angular/router';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
+import { provideAgent } from './agent/provide-agent';
 import { routes } from './app.routes';
 import { OllamaService } from './chatbot/ollama';
 
@@ -16,6 +17,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    provideAgent(),
     provideClientHydration(withEventReplay()),
     provideAppInitializer(() => {
       // Find an Ollama server in the background; bootstrap must not wait on the network.

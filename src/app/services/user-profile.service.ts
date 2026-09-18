@@ -16,7 +16,8 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function validateName(name: string): string | null {
   const trimmed = name.trim();
   if (!trimmed) return 'Name cannot be empty.';
-  if (trimmed.length > NAME_MAX_LENGTH) return `Name must be at most ${NAME_MAX_LENGTH} characters.`;
+  if (trimmed.length > NAME_MAX_LENGTH)
+    return `Name must be at most ${NAME_MAX_LENGTH} characters.`;
   return null;
 }
 
