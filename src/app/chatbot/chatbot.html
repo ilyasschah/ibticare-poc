@@ -1,25 +1,48 @@
-@if (isOpen) {
+@if (isOpen()) {
   <div class="chat-container" role="dialog" aria-label="ibticare agent">
     <div class="chat-header">
       <span>ibticare agent</span>
-      <button class="chat-toggle-btn" (click)="toggleChat()" aria-label="Minimize chat">−</button>
+      <button
+        type="button"
+        class="chat-toggle-btn"
+        (click)="toggleChat()"
+        aria-label="Minimize chat"
+      >
+        −
+      </button>
     </div>
 
-    <div #scrollContainer class="chat-messages" aria-live="polite">
-      @for (msg of messages; track msg) {
+    <div
+      #scrollContainer
+      class="chat-messages"
+      role="log"
+      aria-label="Conversation"
+      aria-live="polite"
+      tabindex="0"
+    >
+      @for (msg of messages(); track $index) {
         <div class="message" [class.bot]="msg.isBot" [class.user]="!msg.isBot">
-          {{ msg.text }}
+          <span class="visually-hidden">{{ msg.isBot ? 'Agent said: ' : 'You said: ' }}</span
+          >{{ msg.text }}
         </div>
       }
     </div>
 
     <div class="chat-input-area">
-      <input #chatInput (keyup.enter)="sendMessage(chatInput)" type="text" placeholder="Type a command..." aria-label="Message the agent" class="chat-input" />
-      <button class="chat-send" (click)="sendMessage(chatInput)">Send</button>
+      <label class="visually-hidden" for="chat-input">Message the agent</label>
+      <input
+        id="chat-input"
+        #chatInput
+        type="text"
+        class="chat-input"
+        placeholder="Type a command..."
+        (keyup.enter)="sendMessage(chatInput)"
+      />
+      <button type="button" class="chat-send" (click)="sendMessage(chatInput)">Send</button>
     </div>
   </div>
 } @else {
-  <button class="chat-launcher" (click)="toggleChat()" aria-label="Open chat">
+  <button type="button" class="chat-launcher" (click)="toggleChat()" aria-label="Open chat">
     💬
   </button>
 }

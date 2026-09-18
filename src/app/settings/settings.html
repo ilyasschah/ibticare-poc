@@ -1,36 +1,82 @@
-<div style="max-width: 500px; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
-  <h2>Ollama Configuration</h2>
+<h1 class="page-title">Settings</h1>
 
-  <!-- Server URL Field -->
-  <div style="margin-bottom: 15px;">
-    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Server URL:</label>
-    <div style="display: flex; gap: 10px;">
-      <input [(ngModel)]="url" type="text" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" />
-      <button (click)="testConnection()" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        Ping Server
+<form class="card" [formGroup]="form" (ngSubmit)="connect()" novalidate>
+  <h2 class="card-title">Ollama connection</h2>
+
+  <div class="field">
+    <label for="ollama-url">Server URL</label>
+    <div class="field-row">
+      <input
+        id="ollama-url"
+        type="url"
+        formControlName="baseUrl"
+        autocomplete="off"
+        spellcheck="false"
+        [attr.aria-invalid]="form.controls.baseUrl.invalid && form.controls.baseUrl.touched"
+        aria-describedby="ollama-url-hint ollama-url-error"
+      />
+      <button type="submit" class="btn btn-primary" [disabled]="busy()">Connect</button>
+      <button type="button" class="btn btn-secondary" (click)="detect()" [disabled]="busy()">
+        Detect
       </button>
     </div>
+    <p id="ollama-url-hint" class="field-hint">
+      <code>http://127.0.0.1:11434</code> is Ollama on this machine. To use another machine over
+      Tailscale, enter its tailnet address — for example <code>http://desktop-ai:11434</code> or
+      <code>http://100.102.45.66:11434</code>. <strong>Detect</strong> tries all known hosts.
+    </p>
+    <p id="ollama-url-error" class="field-error">
+      @if (form.controls.baseUrl.touched && form.controls.baseUrl.invalid) {
+        Enter the URL Ollama is listening on.
+      }
+    </p>
   </div>
 
-  <!-- Status Indicator -->
-  <div style="margin-bottom: 15px;">
-    <strong>Status: </strong>
-    @if (isConnected === true) {
-      <span style="color: green; font-weight: bold;">CONNECTED</span>
-    } @else if (isConnected === false) {
-      <span style="color: red; font-weight: bold;">OFFLINE / UNREACHABLE</span>
-    } @else {
-      <span>Testing...</span>
+  <p class="status" role="status" aria-live="polite">
+    @switch (ollama.status()) {
+      @case ('online') {
+        <span class="badge badge-paid">Connected</span>
+        {{ ollama.models().length }} model(s) on {{ ollama.baseUrl() }}.
+      }
+      @case ('offline') {
+        <span class="badge badge-failed">Unreachable</span>
+        Nothing answered on {{ ollama.baseUrl() }}.
+      }
+      @case ('connecting') {
+        Looking for a server…
+      }
+      @default {
+        Not connected yet.
+      }
     }
-  </div>
+  </p>
 
-  <!-- Models Dropdown -->
-  <div style="margin-bottom: 15px;">
-    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Select Model:</label>
-    <select [ngModel]="selectedModel" (ngModelChange)="onModelChange($event)" [disabled]="!isConnected" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-      @for (model of models; track model) {
+  @if (triedHosts().length) {
+    <div class="troubleshoot">
+      <p>Hosts tried:</p>
+      <ul>
+        @for (host of triedHosts(); track host) {
+          <li>
+            <code>{{ host }}</code>
+          </li>
+        }
+      </ul>
+      <p>
+        On the machine running Ollama, check that it is bound beyond loopback
+        (<code>OLLAMA_HOST=0.0.0.0:11434</code>) and that inbound TCP 11434 is allowed from the
+        tailnet range <code>100.64.0.0/10</code>.
+      </p>
+    </div>
+  }
+
+  <div class="field">
+    <label for="ollama-model">Model</label>
+    <select id="ollama-model" formControlName="model">
+      @for (model of ollama.models(); track model) {
         <option [value]="model">{{ model }}</option>
+      } @empty {
+        <option [value]="form.controls.model.value">{{ form.controls.model.value }}</option>
       }
     </select>
   </div>
-</div>
+</form>

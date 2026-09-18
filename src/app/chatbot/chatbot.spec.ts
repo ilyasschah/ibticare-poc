@@ -12,7 +12,11 @@ describe('Chatbot', () => {
   const chat = vi.fn<(prompt: string) => Promise<string>>();
 
   beforeEach(async () => {
-    try { localStorage.clear(); } catch { /* Node may expose a non-functional localStorage. */ }
+    try {
+      localStorage.clear();
+    } catch {
+      /* Node may expose a non-functional localStorage. */
+    }
     document.body.classList.remove('dark-theme');
     chat.mockReset();
 
@@ -31,7 +35,7 @@ describe('Chatbot', () => {
     input.value = text;
     await component.sendMessage(input);
     TestBed.tick();
-    return component.messages[component.messages.length - 1].text;
+    return component.messages().at(-1)!.text;
   }
 
   it('should create', () => {

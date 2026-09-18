@@ -1,59 +1,79 @@
-# IbticarePoc
+# ibticare-poc
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.24.
+A proof of concept for a **screen-aware desktop assistant**: an Angular app wrapped in Electron, with a
+floating chat widget backed by a local [Ollama](https://ollama.com) model. The assistant can see what page
+you are on and what data is on it, and can act on the app — navigate, switch the theme, and edit your profile.
 
-## Development server
+## How it works
 
-To start a local development server, run:
+| Piece           | File                                          | Role                                                                             |
+| --------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Screen context  | `src/app/services/screen-context.service.ts`  | Tracks route, page title and the metrics each page publishes                     |
+| Action registry | `src/app/services/action-registry.service.ts` | Runs `[ACTION:…]` tags (dark mode, profile edits) and reports success or failure |
+| Tag parser      | `src/app/chatbot/agent-tags.ts`               | Pulls `[NAV:…]` / `[ACTION:…]` tags out of a model reply                         |
+| Ollama client   | `src/app/chatbot/ollama.ts`                   | Builds the system prompt and calls `/api/chat`                                   |
+| Chat widget     | `src/app/chatbot/chatbot.ts`                  | Renders the conversation and applies the tags                                    |
 
-```bash
-ng serve
-```
+Each page publishes **pre-computed, pre-formatted** metrics (see `Dashboard`) so small models never have to do
+arithmetic, and the system prompt forbids answering with anything not in that data.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Requirements
 
-## Code scaffolding
+- Node.js 20+
+- Ollama, with at least one model pulled (`ollama pull qwen2.5-coder:1.5b`)
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Running
 
 ```bash
-ng build
+npm install
+npm start          # Angular dev server on http://localhost:4200
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+For the Electron window (starts the dev server and waits for it):
 
 ```bash
-ng test
+npm run electron
 ```
 
-## Running end-to-end tests
+Other scripts: `npm run build` (production build + SSR prerender), `npm test` (Vitest).
 
-For end-to-end (e2e) testing, run:
+## Using Ollama on another machine (Tailscale)
 
-```bash
-ng e2e
+The app does not need to run on the machine hosting Ollama. At startup it probes every host in
+[`src/app/chatbot/ollama-hosts.ts`](src/app/chatbot/ollama-hosts.ts) in parallel and connects to the
+first one in that list that answers, so the same checkout works on the Ollama host and on any other
+device in the tailnet with no configuration.
+
+The list is ordered local-first:
+
+```
+http://127.0.0.1:11434                        Ollama on this machine
+http://desktop-ai:11434                       tailnet host via MagicDNS short name
+http://desktop-ai.tail1d4aef.ts.net:11434     same host, fully qualified
+http://100.102.45.66:11434                    same host by tailnet IP, if MagicDNS is off
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Edit that file to point at a different host. The **Settings** page overrides it: **Connect** uses the
+URL you type, **Detect** re-scans every known host, and the chosen server and model are saved to
+`localStorage` so they survive a restart. A probe gives up after 2.5s, so an offline host never
+stalls startup.
 
-## Additional Resources
+### Requirements on the machine running Ollama
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+1. Bind it beyond loopback — set `OLLAMA_HOST=0.0.0.0:11434` and restart Ollama.
+2. Allow inbound TCP 11434 from the tailnet range `100.64.0.0/10` (and `fd7a:115c:a1e0::/48` for
+   IPv6). Scope the firewall rule to that range; do not open the port to the whole network.
+3. Leave `OLLAMA_ORIGINS` alone. Ollama already allows `localhost` and `file://` origins, which
+   covers both the dev server and a packaged Electron window.
+
+MagicDNS must be enabled tailnet-wide for the short and fully-qualified names to resolve on other
+devices; the tailnet IP entry works either way.
+
+> **Ollama has no authentication.** Anything that can reach port 11434 can use your models. Keep the
+> firewall rule scoped to the tailnet, and never expose it through Tailscale Funnel or a port forward.
+
+## Conventions
+
+`.claude/CLAUDE.md` (mirrored to `.gemini/GEMINI.md` and `.github/copilot-instructions.md`) is the style
+guide for this repo: standalone components, signals, `inject()`, `input()`/`output()`, OnPush, reactive
+forms, native control flow, no `any`, and WCAG AA.

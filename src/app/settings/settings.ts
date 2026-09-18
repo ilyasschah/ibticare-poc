@@ -1,44 +1,85 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OllamaService } from '../chatbot/ollama';
+import { ScreenContextService } from '../services/screen-context.service';
 
 @Component({
   selector: 'app-settings',
-  standalone: true,
-  imports: [FormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './settings.html',
-  styleUrl: './settings.css'
+  styleUrl: './settings.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Settings implements OnInit {
-  public ollama = inject(OllamaService);
-  
-  public url: string = '';
-  public isConnected: boolean | null = null;
-  public models: string[] = [];
-  public selectedModel: string = '';
+export class Settings {
+  private readonly screenContext = inject(ScreenContextService);
 
-  ngOnInit() {
-    this.url = this.ollama.baseUrl;
-    this.selectedModel = this.ollama.selectedModel;
-    this.testConnection();
+  protected readonly ollama = inject(OllamaService);
+  protected readonly busy = signal(false);
+  /** Set after a manual attempt that found nothing, so the page can explain what it tried. */
+  protected readonly triedHosts = signal<readonly string[]>([]);
+
+  protected readonly form = inject(NonNullableFormBuilder).group({
+    baseUrl: [this.ollama.baseUrl(), [Validators.required]],
+    model: [{ value: this.ollama.selectedModel(), disabled: true }, [Validators.required]],
+  });
+
+  constructor() {
+    this.screenContext.setPageTitle('Settings');
+
+    this.form.controls.model.valueChanges.pipe(takeUntilDestroyed()).subscribe((model) => {
+      this.ollama.selectedModel.set(model);
+      this.publishMetrics();
+    });
+
+    // Startup discovery may still be running, or may have already moved to another host.
+    void this.run(() => this.ollama.ensureConnected());
   }
 
-  async testConnection() {
-    this.ollama.baseUrl = this.url;
-    this.isConnected = await this.ollama.ping();
-    if (this.isConnected) {
-      this.models = await this.ollama.getModels();
-      if (this.models.length > 0 && !this.models.includes(this.selectedModel)) {
-        this.selectedModel = this.models[0];
-        this.ollama.selectedModel = this.selectedModel;
-      }
+  /** Connects to the URL in the form. */
+  protected connect(): void {
+    const control = this.form.controls.baseUrl;
+    if (control.invalid) {
+      control.markAsTouched();
+      return;
+    }
+    void this.run(() => this.ollama.connectTo(control.value));
+  }
+
+  /** Re-scans every known host — the button to press after moving to another machine. */
+  protected detect(): void {
+    void this.run(() => this.ollama.discover());
+  }
+
+  private async run(attempt: () => Promise<boolean>): Promise<void> {
+    this.busy.set(true);
+    this.triedHosts.set([]);
+    const connected = await attempt();
+    this.busy.set(false);
+
+    // Show whatever host we ended up on, and the model list that came with it.
+    this.form.controls.baseUrl.setValue(this.ollama.baseUrl());
+    this.syncModelControl();
+    if (!connected) this.triedHosts.set(this.ollama.candidates());
+    this.publishMetrics();
+  }
+
+  private syncModelControl(): void {
+    const control = this.form.controls.model;
+    if (this.ollama.models().length) {
+      control.enable({ emitEvent: false });
+      control.setValue(this.ollama.selectedModel(), { emitEvent: false });
     } else {
-      this.models = [];
+      control.disable({ emitEvent: false });
     }
   }
 
-  onModelChange(newModel: string) {
-    this.selectedModel = newModel;
-    this.ollama.selectedModel = newModel;
+  private publishMetrics(): void {
+    this.screenContext.setMetrics({
+      ollamaUrl: this.ollama.baseUrl(),
+      connection: this.ollama.status(),
+      selectedModel: this.ollama.selectedModel(),
+      availableModels: [...this.ollama.models()],
+    });
   }
 }

@@ -1,68 +1,72 @@
-import { Component, inject, ChangeDetectorRef, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { OllamaService } from './ollama';
 import { ActionRegistryService } from '../services/action-registry.service';
 import { parseAgentTags } from './agent-tags';
 
+export interface ChatMessage {
+  text: string;
+  isBot: boolean;
+}
+
 const NAV_ROUTES: Record<string, string> = {
   SETTINGS: '/settings',
   PROFILE: '/profile',
-  DASHBOARD: '/dashboard'
+  DASHBOARD: '/dashboard',
 };
 
 @Component({
   selector: 'app-chatbot',
-  standalone: true,
-  imports: [],
   templateUrl: './chatbot.html',
-  styleUrl: './chatbot.css'
+  styleUrl: './chatbot.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Chatbot implements AfterViewChecked {
-  private ollama = inject(OllamaService);
-  private actions = inject(ActionRegistryService);
-  private cdr = inject(ChangeDetectorRef);
-  private router = inject(Router);
+export class Chatbot {
+  private readonly ollama = inject(OllamaService);
+  private readonly actions = inject(ActionRegistryService);
+  private readonly router = inject(Router);
 
-  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  private readonly scrollContainer = viewChild<ElementRef<HTMLElement>>('scrollContainer');
 
-  public isOpen: boolean = true;
+  readonly isOpen = signal(true);
+  readonly messages = signal<readonly ChatMessage[]>([
+    { text: 'Hello! I am your ibticare agent. How can I help you today?', isBot: true },
+  ]);
 
-  messages: { text: string, isBot: boolean }[] = [
-    { text: 'Hello! I am your ibticare agent. How can I help you today?', isBot: true }
-  ];
-
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+  constructor() {
+    // Keep the newest message in view; re-runs after render whenever the list changes.
+    afterRenderEffect(() => {
+      this.messages();
+      const container = this.scrollContainer()?.nativeElement;
+      if (container) container.scrollTop = container.scrollHeight;
+    });
   }
 
-  private scrollToBottom(): void {
-    try {
-      if (this.scrollContainer) {
-        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
-      }
-    } catch (err) {
-      console.error('Scroll error:', err);
-    }
+  toggleChat(): void {
+    this.isOpen.update((open) => !open);
   }
 
-  toggleChat() {
-    this.isOpen = !this.isOpen;
-  }
-
-  async sendMessage(inputBox: HTMLInputElement) {
+  async sendMessage(inputBox: HTMLInputElement): Promise<void> {
     const text = inputBox.value.trim();
     if (!text) return;
 
-    this.messages.push({ text: text, isBot: false });
     inputBox.value = '';
+    this.messages.update((list) => [
+      ...list,
+      { text, isBot: false },
+      { text: 'Thinking...', isBot: true },
+    ]);
 
-    this.messages.push({ text: 'Thinking...', isBot: true });
-    this.cdr.detectChanges();
-
-    const reply = await this.ollama.chat(text);
-
-    this.messages[this.messages.length - 1].text = this.applyAgentTags(reply);
-    this.cdr.detectChanges();
+    const reply = this.applyAgentTags(await this.ollama.chat(text));
+    this.messages.update((list) => [...list.slice(0, -1), { text: reply, isBot: true }]);
   }
 
   /** Runs every tag in the reply and returns the text to show the user. */

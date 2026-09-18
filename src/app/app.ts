@@ -1,14 +1,13 @@
-import { Component } from '@angular/core';
-import { RouterOutlet, RouterLink } from '@angular/router';
-import { Chatbot } from './chatbot/chatbot'; // <-- Import the Chatbot
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { Chatbot } from './chatbot/chatbot';
+import { SideNav } from './side-nav/side-nav';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet, RouterLink, Chatbot], // <-- Add Chatbot to imports
+  imports: [RouterOutlet, Chatbot, SideNav],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {
-  title = 'ibticare-poc';
-}
+export class AppComponent {}

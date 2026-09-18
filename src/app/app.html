@@ -1,12 +1,8 @@
-<nav class="app-nav">
-  <a routerLink="/dashboard" class="app-nav-link">Dashboard</a>
-  <a routerLink="/profile" class="app-nav-link">Profile</a>
-  <a routerLink="/settings" class="app-nav-link">Settings</a>
-</nav>
+<app-side-nav #sideNav />
 
-<main class="app-main">
-  <router-outlet></router-outlet>
+<!-- Marked inert while the drawer is open, which is what makes its aria-modal true. -->
+<main class="app-main" [attr.inert]="sideNav.isOpen() ? '' : null">
+  <router-outlet />
 </main>
 
-<!-- The floating chatbot widget -->
-<app-chatbot></app-chatbot>
+<app-chatbot [attr.inert]="sideNav.isOpen() ? '' : null" />

@@ -1,0 +1,58 @@
+<header class="app-header" [attr.inert]="isOpen() ? '' : null">
+  <button
+    #toggleButton
+    type="button"
+    class="nav-toggle"
+    (click)="toggle()"
+    [attr.aria-expanded]="isOpen()"
+    aria-controls="app-drawer"
+    aria-haspopup="dialog"
+    aria-label="Main menu"
+  >
+    <svg class="nav-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  </button>
+  <span class="app-brand">ibticare</span>
+</header>
+
+<div class="scrim" [class.scrim-open]="isOpen()" (click)="close()" aria-hidden="true"></div>
+
+<div
+  #drawer
+  id="app-drawer"
+  class="drawer"
+  [class.drawer-open]="isOpen()"
+  [attr.inert]="isOpen() ? null : ''"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Main menu"
+  (keydown)="onKeydown($event)"
+>
+  <div class="drawer-header">
+    <span class="drawer-title">Menu</span>
+    <button type="button" class="drawer-close" (click)="close()" aria-label="Close menu">
+      <svg class="nav-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  </div>
+
+  <nav aria-label="Main">
+    <ul class="drawer-links">
+      @for (link of links; track link.path) {
+        <li>
+          <a
+            class="drawer-link"
+            [routerLink]="link.path"
+            routerLinkActive="drawer-link-active"
+            ariaCurrentWhenActive="page"
+            (click)="close()"
+          >
+            {{ link.label }}
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+</div>
